@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Video Share NestJS API
+
+Globals:
+  Function:
+    Timeout: 15
+    MemorySize: 512
+    Runtime: nodejs22.x
+    Architectures:
+      - x86_64
+
+Resources:
+  NestApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/main.handler
+      CodeUri: .
+      Environment:
+        Variables:
+          AWS_REGION: eu-west-2
+      Events:
+        ApiGatewayProxy:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
