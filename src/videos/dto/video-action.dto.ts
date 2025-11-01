@@ -5,7 +5,7 @@ export class VideoActionDto {
     action: string
 
     @IsString()
-    name: string
+    key: string
 
     @IsBoolean()
     @IsString()

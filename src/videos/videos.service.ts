@@ -10,21 +10,27 @@ export class VideosService {
     private readonly BUCKET_NAME = 'video-share-uploads';
 
     async handleVideoAction(dto: VideoActionDto): Promise<VideoResponse> {
-        const { action, name, contentType } = dto;
+        const { action, key, contentType } = dto;
         const expiresIn = 3600;
+
+        console.log(`>>>>>>> dto: ${JSON.stringify(dto)}`);
+
+        console.log(`>>>>>>> action: ${action}`);
+        console.log(`>>>>>>> name: ${key}`);
+        console.log(`>>>>>>> contentType: ${contentType}`);
 
         let command;
 
         if (action === 'upload') {
             command = new PutObjectCommand({
                 Bucket: this.BUCKET_NAME,
-                Key: name,
+                Key: key,
                 ContentType: contentType
             })
         } else if (action === 'download') {
             command = new GetObjectCommand({
                 Bucket: this.BUCKET_NAME,
-                Key: name
+                Key: key
             })
         } else {
             throw new BadRequestException('Invalid action');

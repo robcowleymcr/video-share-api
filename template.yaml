@@ -20,8 +20,13 @@ Resources:
         Variables:
           AWS_REGION: eu-west-2
       Events:
-        ApiGatewayProxy:
+        ApiGatewayProxyGetVideos:
           Type: Api
           Properties:
-            Path: /{proxy+}
-            Method: ANY
+            Path: /
+            Method: GET
+        ApiGatewayProxyPostVideos:
+          Type: Api
+          Properties:
+            Path: /videos
+            Method: POST
