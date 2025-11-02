@@ -1,0 +1,38 @@
+export class VideoMetadata {
+    videoId: string;
+    uploaderId: string;
+    key: string;
+    title: string;
+    contentType?: string;
+    uploadDate: string;
+    status: string;
+
+    constructor(
+        videoId: string,
+        uploaderId: string,
+        key: string,
+        title?: string,
+        contentType?: string,
+        status?: string) {
+            this.videoId = videoId;
+            this.uploaderId = uploaderId;
+            this.key = key;
+            this.title = title || key;
+            this.contentType = contentType;
+            this.uploadDate = new Date().toISOString();
+            this.status = status || 'pending';
+        }
+
+    // convert object to DynamoDB compatible item
+    toDynamoDBItem() {
+        return {
+            videoId: { S: this.videoId },
+            uploaderId: { S: this.uploaderId },
+            key: { S: this.key },
+            title: { S: this.title },
+            contentType: { S: this.contentType },
+            uploadDate: { S: this.uploadDate },
+            status: { S: this.status }
+        };
+    }
+}
