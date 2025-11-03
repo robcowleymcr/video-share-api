@@ -22,35 +22,39 @@ export class VideosService {
         return this.dynamoDbClient.put(params).promise();
     }
 
-
-    async handleVideoAction(dto: VideoActionDto, uploaderId: string): Promise<VideoResponse> {
+    async handleVideoAction(dto: VideoActionDto, uploaderId: string, uploaderName: string): Promise<VideoResponse> {
         const { action, key, contentType } = dto;
         const expiresIn = 3600;
 
         let command;
 
+        
         if (action === 'upload') {
+            const videoId = uuid();
+            let s3Key = `${uploaderId}/${videoId}`;
+
             command = new PutObjectCommand({
                 Bucket: this.BUCKET_NAME,
-                Key: key,
+                Key: s3Key,
                 ContentType: contentType
             })
+            
 
-            const videoId = uuid();
-
-            console.log(`>>>>> videoId: ${videoId} ${typeof videoId}`);
+            // console.log(`s3Key`)
+            // console.log(`>>>>> videoId: ${videoId} ${typeof videoId}`);
 
             // TODO create new VideoMetadata entity
             const metadataObject = new VideoMetadata(
                 videoId, 
                 uploaderId,
-                key,
+                uploaderName,
+                s3Key,
                 undefined,
                 dto.contentType,
                 VideoStatus.PENDING
             );
 
-            console.log(`>>>>> data: ${JSON.stringify(metadataObject)}`);
+            // console.log(`>>>>> data: ${JSON.stringify(metadataObject)}`);
             
             // TODO save to DynamoDB with status = "UPLOADING"
             await this.saveVideoMetadata(metadataObject);
@@ -66,6 +70,8 @@ export class VideosService {
         }
         
         const url = await getSignedUrl(this.s3, command, { expiresIn });
+
+        console.log(`>>>>> url: ${url}`);
 
         return {
             url,

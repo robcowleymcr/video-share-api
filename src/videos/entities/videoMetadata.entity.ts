@@ -6,16 +6,19 @@ export class VideoMetadata {
     contentType?: string;
     uploadDate: string;
     status: string;
+    uploaderName: string;
 
     constructor(
         videoId: string,
         uploaderId: string,
+        uploaderName: string,
         key: string,
         title?: string,
         contentType?: string,
         status?: string) {
             this.videoId = videoId;
             this.uploaderId = uploaderId;
+            this.uploaderName = uploaderName;
             this.key = key;
             this.title = title || key;
             this.contentType = contentType;
@@ -28,6 +31,7 @@ export class VideoMetadata {
         return {
             videoId: { S: this.videoId },
             uploaderId: { S: this.uploaderId },
+            uploaderName: { S: this.uploaderName },
             key: { S: this.key },
             title: { S: this.title },
             contentType: { S: this.contentType },
