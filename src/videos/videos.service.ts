@@ -33,17 +33,14 @@ export class VideosService {
             const videoId = uuid();
             let s3Key = `${uploaderId}/${videoId}`;
 
+            // Create new S3 object
             command = new PutObjectCommand({
                 Bucket: this.BUCKET_NAME,
                 Key: s3Key,
                 ContentType: contentType
             })
-            
 
-            // console.log(`s3Key`)
-            // console.log(`>>>>> videoId: ${videoId} ${typeof videoId}`);
-
-            // TODO create new VideoMetadata entity
+            // Create new VideoMetadata entity
             const metadataObject = new VideoMetadata(
                 videoId, 
                 uploaderId,
@@ -53,10 +50,8 @@ export class VideosService {
                 dto.contentType,
                 VideoStatus.PENDING
             );
-
-            // console.log(`>>>>> data: ${JSON.stringify(metadataObject)}`);
             
-            // TODO save to DynamoDB with status = "UPLOADING"
+            // Save to DynamoDB with status = "PENDING"
             await this.saveVideoMetadata(metadataObject);
             
         
@@ -70,8 +65,6 @@ export class VideosService {
         }
         
         const url = await getSignedUrl(this.s3, command, { expiresIn });
-
-        console.log(`>>>>> url: ${url}`);
 
         return {
             url,
