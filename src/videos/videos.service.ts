@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { VideoActionDto } from "./dto/video-action.dto";
 import { VideoResponse } from "./interfaces/video-response.interface";
@@ -28,7 +28,6 @@ export class VideosService {
 
         let command;
 
-        
         if (action === 'upload') {
             const videoId = uuid();
             const fileName = `${videoId}.mp4`;
@@ -71,6 +70,27 @@ export class VideosService {
             url,
             expiresIn
         }
+    }
+
+    async getAllVideos(): Promise<DynamoDB.DocumentClient.ScanOutput> {
+        const params = {
+            TableName: 'video_share_videos'
+        }
+        return this.dynamoDbClient.scan(params).promise();
+    }
+
+    async deleteVideo(videoId: string): Promise<DynamoDB.DocumentClient.DeleteItemOutput> {
+        const command = new DeleteObjectCommand({
+                Bucket: this.BUCKET_NAME,
+                Key: `${videoId}`,
+        })
+        const params = {
+            TableName: 'video_share_videos',
+            Key: {
+                videoId: videoId
+            }
+        }
+        return this.dynamoDbClient.delete(params).promise();
     }
 
 }

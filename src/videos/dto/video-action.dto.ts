@@ -7,9 +7,6 @@ export class VideoActionDto {
     @IsString()
     key: string
 
-    // @IsString()
-    // uploaderId: string
-
     @IsBoolean()
     @IsString()
     contentType?: string
