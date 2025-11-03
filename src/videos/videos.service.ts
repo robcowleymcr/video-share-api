@@ -23,7 +23,7 @@ export class VideosService {
     }
 
     async handleVideoAction(dto: VideoActionDto, uploaderId: string, uploaderName: string): Promise<VideoResponse> {
-        const { action, key, contentType } = dto;
+        const { action, key, contentType, videoTitle } = dto;
         const expiresIn = 3600;
 
         let command;
@@ -31,12 +31,13 @@ export class VideosService {
         
         if (action === 'upload') {
             const videoId = uuid();
+            const fileName = `${videoId}.mp4`;
             let s3Key = `${uploaderId}/${videoId}`;
 
             // Create new S3 object
             command = new PutObjectCommand({
                 Bucket: this.BUCKET_NAME,
-                Key: s3Key,
+                Key: fileName,
                 ContentType: contentType
             })
 
@@ -46,7 +47,7 @@ export class VideosService {
                 uploaderId,
                 uploaderName,
                 s3Key,
-                undefined,
+                videoTitle,
                 dto.contentType,
                 VideoStatus.PENDING
             );

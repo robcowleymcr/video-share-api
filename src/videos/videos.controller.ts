@@ -11,6 +11,7 @@ export class VideoController {
     @Post()
     @UseGuards(CognitoAuthGuard)
     async handleVideoAction(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
+        console.log(`>>>>>> body: ${JSON.stringify(dto.body)}`);
         return this.videosService.handleVideoAction(dto.body, req.user['cognito:username'], req.user['name']);
     }
 }
