@@ -23,7 +23,7 @@ export class VideosService {
     }
 
     async handleVideoAction(dto: VideoActionDto, uploaderId: string, uploaderName: string): Promise<VideoResponse> {
-        const { action, key, contentType, videoTitle } = dto;
+        const { action, key, contentType, videoTitle, videoDescription } = dto;
         const expiresIn = 3600;
 
         let command;
@@ -48,7 +48,8 @@ export class VideosService {
                 s3Key,
                 videoTitle,
                 dto.contentType,
-                VideoStatus.PENDING
+                VideoStatus.PENDING,
+                videoDescription
             );
             
             // Save to DynamoDB with status = "PENDING"
@@ -82,8 +83,9 @@ export class VideosService {
     async deleteVideo(videoId: string): Promise<DynamoDB.DocumentClient.DeleteItemOutput> {
         const command = new DeleteObjectCommand({
                 Bucket: this.BUCKET_NAME,
-                Key: `${videoId}`,
+                Key: `${videoId}.mp4`,
         })
+        await getSignedUrl(this.s3, command);
         const params = {
             TableName: 'video_share_videos',
             Key: {

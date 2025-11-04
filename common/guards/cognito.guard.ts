@@ -18,7 +18,7 @@ export class CognitoAuthGuard implements CanActivate {
 
     try {
       const payload = await this.verifier.verify(token);
-      console.log('JWT payload:', payload);
+      // console.log('JWT payload:', payload);
       request.user = payload; // attach claims to request
       return true;
     } catch (err) {
