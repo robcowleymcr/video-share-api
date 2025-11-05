@@ -25,4 +25,10 @@ export class VideoController {
     async deleteVideo(@Param('id') id: string): Promise<any> {
         return this.videosService.deleteVideo(id);
     }
+
+    @Get(':id')
+    @UseGuards(CognitoAuthGuard)
+    async getVideoMetadata(@Param('id') id: string): Promise<any> {
+        return this.videosService.getVideoMetadata(id);
+    }
 }

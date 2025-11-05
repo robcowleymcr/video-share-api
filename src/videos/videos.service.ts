@@ -94,5 +94,15 @@ export class VideosService {
         }
         return this.dynamoDbClient.delete(params).promise();
     }
-
+    async getVideoMetadata(videoId: string): Promise<DynamoDB.DocumentClient.GetItemOutput> {
+        const params = {
+            TableName: 'video_share_videos',
+            Key: {
+                videoId: videoId
+            }
+        }
+        const result = await this.dynamoDbClient.get(params).promise();
+        console.log(result);
+        return result;
+    }
 }
