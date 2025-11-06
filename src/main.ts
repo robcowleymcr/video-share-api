@@ -33,7 +33,7 @@ async function bootstrapLocal() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: 'http://localhost:5173', // ✅ your React dev server
+    origin: 'http://localhost:3001', // ✅ your React dev server
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true, // optional, only if you use cookies or auth headers
