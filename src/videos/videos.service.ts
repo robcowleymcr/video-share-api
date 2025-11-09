@@ -82,7 +82,15 @@ export class VideosService {
         const params = {
             TableName: 'video_share_videos'
         }
-        return this.dynamoDbClient.scan(params).promise();
+        const scanResult = await this.dynamoDbClient.scan(params).promise();
+        const items = scanResult.Items || [];
+        const dateDescending = {
+            ...scanResult,
+            Items: items.sort((a: any, b: any) => {
+                return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
+            })
+        }
+        return dateDescending
     }
 
     async deleteVideo(videoId: string): Promise<DynamoDB.DocumentClient.DeleteItemOutput> {
