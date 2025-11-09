@@ -9,12 +9,20 @@ export class VideoController {
     constructor(private readonly videosService: VideosService) {}
 
     @Post()
+    @UseGuards(CognitoAuthGuard)
+    async uploadVideo(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
+        // console.log(`>>>>>>> handleVideoAction: ${JSON.stringify(dto)}`);
+        const userId = req.user? req.user['sub'] : null;
+        const name = req.user? req.user['cognito:username'] : null;
+        return this.videosService.handleVideoAction(dto.body, userId, name);
+    }
+
+    @Post('play')
     // @UseGuards(CognitoAuthGuard)
-    async handleVideoAction(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
-        console.log('req.user', req.user);
-        console.log('req.body', dto);
-        const userId = req.user? req.user['cognito:username'] : null;
-        const name = req.user? req.user['name'] : null;
+    async getVideo(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
+        console.log(`>>>>>>> handleVideoAction: ${JSON.stringify(dto)}`);
+        const userId = req.user? req.user['sub'] : null;
+        const name = req.user? req.user['cognito:username'] : null;
         return this.videosService.handleVideoAction(dto.body, userId, name);
     }
 

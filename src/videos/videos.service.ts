@@ -40,6 +40,8 @@ export class VideosService {
                 ContentType: contentType
             })
 
+            console.log(`command`, command);
+
             // Create new VideoMetadata entity
             const metadataObject = new VideoMetadata(
                 videoId, 
@@ -51,6 +53,8 @@ export class VideosService {
                 VideoStatus.PENDING,
                 videoDescription
             );
+
+            console.log(`metadataObject`, metadataObject);
             
             // Save to DynamoDB with status = "PENDING"
             await this.saveVideoMetadata(metadataObject);

@@ -4,9 +4,9 @@ import { CognitoJwtVerifier } from 'aws-jwt-verify';
 @Injectable()
 export class CognitoAuthGuard implements CanActivate {
   private verifier = CognitoJwtVerifier.create({
-    userPoolId: 'eu-west-2_InJTGt0kf',
+    userPoolId: 'eu-west-2_da42rQKXJ',
     tokenUse: 'id', // or 'access'
-    clientId: 'tkepvmmrc5apkv585v6gol84i',
+    clientId: '5qmvgh6dtlputqh38pbb68aurk',
   });
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
