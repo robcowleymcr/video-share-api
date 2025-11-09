@@ -23,12 +23,12 @@ export class VideosService {
     }
 
     async handleVideoAction(dto: VideoActionDto, uploaderId: string, uploaderName: string): Promise<VideoResponse> {
-        const { action, key, contentType, videoTitle, videoDescription } = dto;
+        const { action, key, contentType, videoTitle, videoDescription, releaseYear } = dto;
         const expiresIn = 3600;
 
         let command;
 
-        if (action === 'upload') {
+        if (action === 'upload') {  
             const videoId = uuid();
             const fileName = `${videoId}.mp4`;
             let s3Key = `${uploaderId}/${videoId}`;
@@ -51,7 +51,8 @@ export class VideosService {
                 videoTitle,
                 dto.contentType,
                 VideoStatus.PENDING,
-                videoDescription
+                videoDescription,
+                parseInt(releaseYear)
             );
 
             console.log(`metadataObject`, metadataObject);

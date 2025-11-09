@@ -7,17 +7,19 @@ export class VideoMetadata {
     uploadDate: string;
     status: string;
     uploaderName: string;
-    videoDescription?: string | undefined;
+    videoDescription: string;
+    releaseYear: number;
 
     constructor(
         videoId: string,
         uploaderId: string,
         uploaderName: string,
         key: string,
-        title?: string,
-        contentType?: string,
-        status?: string,
-        videoDescription?: string) {
+        title: string,
+        contentType: string,
+        status: string,
+        videoDescription: string,
+        releaseYear: number) {
             this.videoId = videoId;
             this.uploaderId = uploaderId;
             this.uploaderName = uploaderName;
@@ -26,7 +28,8 @@ export class VideoMetadata {
             this.contentType = contentType;
             this.uploadDate = new Date().toISOString();
             this.status = status || 'pending';
-            this.videoDescription = videoDescription || undefined;
+            this.videoDescription = videoDescription;
+            this.releaseYear = releaseYear;
         }
 
     // convert object to DynamoDB compatible item

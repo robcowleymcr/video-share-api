@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsOptional, IsString } from "class-validator";
+import { IsIn, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class VideoActionDto {
     @IsIn(['download', 'upload'])
@@ -8,12 +8,15 @@ export class VideoActionDto {
     key: string
 
     @IsString()
-    contentType?: string
+    contentType: string
 
     @IsString()
     videoTitle: string
 
     @IsString()
     @IsOptional()
-    videoDescription?: string
+    videoDescription: string
+
+    @IsNumber()
+    releaseYear: string
 }
