@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { VideosService } from "./videos.service";
 import { VideoActionDto } from "./dto/video-action.dto";
 import { VideoResponse } from "./interfaces/video-response.interface";
@@ -28,8 +28,15 @@ export class VideoController {
 
     @Get()
     // @UseGuards(CognitoAuthGuard)
-    async getAllVideos(): Promise<any> {
-        return this.videosService.getAllVideos();
+    async getAllVideos(@Query('order') order: string = 'dsc', @Query('limit') limit: string = '9'): Promise<any> {
+        const limitInt = parseInt(limit);
+        return this.videosService.getAllVideos(order, limitInt);
+    }
+
+    @Get('recommended')
+    // @UseGuards(CognitoAuthGuard)
+    async getRecommendedVideos(): Promise<any> {
+        return this.videosService.getRecommendedVideos();
     }
 
     @Delete(':id')

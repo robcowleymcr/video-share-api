@@ -28,7 +28,7 @@ export class VideosService {
 
         let command;
 
-        if (action === 'upload') {  
+        if (action === 'upload') {
             const videoId = uuid();
             const fileName = `${videoId}.mp4`;
             let s3Key = `${uploaderId}/${videoId}`;
@@ -44,7 +44,7 @@ export class VideosService {
 
             // Create new VideoMetadata entity
             const metadataObject = new VideoMetadata(
-                videoId, 
+                videoId,
                 uploaderId,
                 uploaderName,
                 s3Key,
@@ -56,11 +56,11 @@ export class VideosService {
             );
 
             console.log(`metadataObject`, metadataObject);
-            
+
             // Save to DynamoDB with status = "PENDING"
             await this.saveVideoMetadata(metadataObject);
-            
-        
+
+
         } else if (action === 'download') {
             command = new GetObjectCommand({
                 Bucket: this.BUCKET_NAME,
@@ -69,7 +69,7 @@ export class VideosService {
         } else {
             throw new BadRequestException('Invalid action');
         }
-        
+
         const url = await getSignedUrl(this.s3, command, { expiresIn });
 
         return {
@@ -78,7 +78,20 @@ export class VideosService {
         }
     }
 
-    async getAllVideos(): Promise<DynamoDB.DocumentClient.ScanOutput> {
+    async getRecommendedVideos(): Promise<any> {
+        const scanResult = await this.getAllVideos();
+        const items = scanResult.Items || [];
+
+        // Shuffle the items
+        const shuffledItems = items.sort(() => Math.random() - 0.5);
+
+        // Select the first 5 items
+        const recommendedVideos = shuffledItems.slice(0, 5);
+
+        return recommendedVideos;
+    }
+
+    async getAllVideos(order: string = 'dsc', limit: number | null = null): Promise<DynamoDB.DocumentClient.ScanOutput> {
         const params = {
             TableName: 'video_share_videos'
         }
@@ -87,16 +100,19 @@ export class VideosService {
         const dateDescending = {
             ...scanResult,
             Items: items.sort((a: any, b: any) => {
-                return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
-            })
+                if (order === 'dsc') {
+                    return new Date(b.uploadDate).getTime() -    new Date(a.uploadDate).getTime();
+                }
+                return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
+            }).slice(0, limit || items.length)
         }
         return dateDescending
     }
 
     async deleteVideo(videoId: string): Promise<DynamoDB.DocumentClient.DeleteItemOutput> {
         const command = new DeleteObjectCommand({
-                Bucket: this.BUCKET_NAME,
-                Key: `${videoId}.mp4`,
+            Bucket: this.BUCKET_NAME,
+            Key: `${videoId}.mp4`,
         })
         await getSignedUrl(this.s3, command);
         const params = {
