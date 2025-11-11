@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { VideosService } from "./videos.service";
 import { VideoActionDto } from "./dto/video-action.dto";
 import { VideoResponse } from "./interfaces/video-response.interface";
@@ -6,14 +6,18 @@ import { CognitoAuthGuard } from "common/guards/cognito.guard";
 
 @Controller('videos')
 export class VideoController {
-    constructor(private readonly videosService: VideosService) {}
+    constructor(private readonly videosService: VideosService) { }
 
     @Post()
     @UseGuards(CognitoAuthGuard)
     async uploadVideo(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
-        // console.log(`>>>>>>> handleVideoAction: ${JSON.stringify(dto)}`);
-        const userId = req.user? req.user['sub'] : null;
-        const name = req.user? req.user['cognito:username'] : null;
+        const groups = req.user['cognito:groups'] || [];
+        if (!groups.includes('admins')) {
+            throw new ForbiddenException('Only admins can upload videos');
+        }
+
+        const userId = req.user ? req.user['sub'] : null;
+        const name = req.user ? req.user['cognito:username'] : null;
         return this.videosService.handleVideoAction(dto.body, userId, name);
     }
 
@@ -21,8 +25,8 @@ export class VideoController {
     // @UseGuards(CognitoAuthGuard)
     async getVideo(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
         console.log(`>>>>>>> handleVideoAction: ${JSON.stringify(dto)}`);
-        const userId = req.user? req.user['sub'] : null;
-        const name = req.user? req.user['cognito:username'] : null;
+        const userId = req.user ? req.user['sub'] : null;
+        const name = req.user ? req.user['cognito:username'] : null;
         return this.videosService.handleVideoAction(dto.body, userId, name);
     }
 

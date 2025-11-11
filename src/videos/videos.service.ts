@@ -23,7 +23,7 @@ export class VideosService {
     }
 
     async handleVideoAction(dto: VideoActionDto, uploaderId: string, uploaderName: string): Promise<VideoResponse> {
-        const { action, key, contentType, videoTitle, videoDescription, releaseYear } = dto;
+        const { action, key, contentType, videoTitle, videoDescription, releaseYear, platform } = dto;
         const expiresIn = 3600;
 
         let command;
@@ -52,12 +52,12 @@ export class VideosService {
                 dto.contentType,
                 VideoStatus.PENDING,
                 videoDescription,
-                parseInt(releaseYear)
+                parseInt(releaseYear),
+                platform
             );
 
             console.log(`metadataObject`, metadataObject);
 
-            // Save to DynamoDB with status = "PENDING"
             await this.saveVideoMetadata(metadataObject);
 
 

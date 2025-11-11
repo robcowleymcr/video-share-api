@@ -19,4 +19,7 @@ export class VideoActionDto {
 
     @IsNumber()
     releaseYear: string
+
+    @IsString()
+    platform: string
 }

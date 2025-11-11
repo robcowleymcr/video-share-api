@@ -9,6 +9,7 @@ export class VideoMetadata {
     uploaderName: string;
     videoDescription: string;
     releaseYear: number;
+    platform: string
 
     constructor(
         videoId: string,
@@ -19,7 +20,8 @@ export class VideoMetadata {
         contentType: string,
         status: string,
         videoDescription: string,
-        releaseYear: number) {
+        releaseYear: number,
+        platform:string) {
             this.videoId = videoId;
             this.uploaderId = uploaderId;
             this.uploaderName = uploaderName;
@@ -30,6 +32,7 @@ export class VideoMetadata {
             this.status = status || 'pending';
             this.videoDescription = videoDescription;
             this.releaseYear = releaseYear;
+            this.platform = platform;
         }
 
     // convert object to DynamoDB compatible item
