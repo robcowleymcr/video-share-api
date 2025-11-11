@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, S3Client, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { VideoActionDto } from "./dto/video-action.dto";
 import { VideoResponse } from "./interfaces/video-response.interface";
@@ -96,12 +96,12 @@ export class VideosService {
             TableName: 'video_share_videos'
         }
         const scanResult = await this.dynamoDbClient.scan(params).promise();
-        const items = scanResult.Items || [];
+        const items = scanResult.Items?.filter((item: any) => item.status === VideoStatus.UPLOADED) || [];
         const dateDescending = {
             ...scanResult,
             Items: items.sort((a: any, b: any) => {
                 if (order === 'dsc') {
-                    return new Date(b.uploadDate).getTime() -    new Date(a.uploadDate).getTime();
+                    return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
                 }
                 return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
             }).slice(0, limit || items.length)
@@ -109,19 +109,58 @@ export class VideosService {
         return dateDescending
     }
 
-    async deleteVideo(videoId: string): Promise<DynamoDB.DocumentClient.DeleteItemOutput> {
-        const command = new DeleteObjectCommand({
-            Bucket: this.BUCKET_NAME,
-            Key: `${videoId}.mp4`,
-        })
-        await getSignedUrl(this.s3, command);
+    async deleteVideo(videoId: string, userId: string): Promise<any> {
         const params = {
             TableName: 'video_share_videos',
             Key: {
-                videoId: videoId
+                videoId
             }
         }
-        return this.dynamoDbClient.delete(params).promise();
+
+        const getDbItem: any = await this.dynamoDbClient.get(params).promise();
+        console.log(`getDbItem`, getDbItem);
+        if (getDbItem.Item.uploaderId === userId) {
+            console.log(`>>>>> you uploaded this video`)
+            
+            // delete the the thumbnail jpg and the mp4 objects from s3
+            const command = new DeleteObjectsCommand({
+                Bucket: this.BUCKET_NAME,
+                Delete: {
+                    Objects: [
+                        {
+                            Key: `${videoId}.mp4`,
+                        },
+                        {
+                            Key: `thumbnails/${videoId}.jpg`,
+                        }
+                    ],
+                }
+            })
+
+            const s3DeleteResponse = await this.s3.send(command);
+
+            console.log("✅ S3 delete success:", s3DeleteResponse);
+
+            // update the item status in dynamodb
+            const params = {
+                TableName: 'video_share_videos',
+                Key: {
+                    videoId: videoId,
+                },
+                UpdateExpression: 'SET #status = :status',
+                ExpressionAttributeNames: {
+                    '#status': 'status',
+                },
+                ExpressionAttributeValues: {
+                    ':status': VideoStatus.DELETED,
+                },
+                ReturnValues: 'ALL_NEW',
+            };
+            return await this.dynamoDbClient.update(params).promise();
+        }
+        else {
+            throw new BadRequestException('You can only delete your own videos');
+        }
     }
     async getVideoMetadata(videoId: string): Promise<DynamoDB.DocumentClient.GetItemOutput> {
         const params = {

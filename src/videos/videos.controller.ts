@@ -45,8 +45,11 @@ export class VideoController {
 
     @Delete(':id')
     @UseGuards(CognitoAuthGuard)
-    async deleteVideo(@Param('id') id: string): Promise<any> {
-        return this.videosService.deleteVideo(id);
+    async deleteVideo(@Param('id') id: string, @Req() req): Promise<any> {
+        console.log(`>>>>> deleteVideo: ${id}`);    
+        const userId = req.user ? req.user['sub'] : null;
+        console.log(`>>>>> userId: ${userId}`);
+        return this.videosService.deleteVideo(id, userId);
     }
 
     @Get(':id')

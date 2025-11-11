@@ -5,7 +5,7 @@ import { CognitoJwtVerifier } from 'aws-jwt-verify';
 export class CognitoAuthGuard implements CanActivate {
   private verifier = CognitoJwtVerifier.create({
     userPoolId: 'eu-west-2_da42rQKXJ',
-    tokenUse: 'id', // or 'access'
+    tokenUse: 'access',
     clientId: '5qmvgh6dtlputqh38pbb68aurk',
   });
 
@@ -18,7 +18,7 @@ export class CognitoAuthGuard implements CanActivate {
 
     try {
       const payload = await this.verifier.verify(token);
-      // console.log('JWT payload:', payload);
+      console.log('JWT payload:', payload);
       request.user = payload; // attach claims to request
       return true;
     } catch (err) {

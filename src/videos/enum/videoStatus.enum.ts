@@ -1,5 +1,5 @@
 export enum VideoStatus {
     PENDING = 'PENDING',
-    UPLOADING = 'UPLOADING',
-    UPLOADED = 'UPLOADED'
+    UPLOADED = 'UPLOADED',
+    DELETED = 'DELETED'
 }
