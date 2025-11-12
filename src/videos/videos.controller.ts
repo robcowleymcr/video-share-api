@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { VideosService } from "./videos.service";
 import { VideoActionDto } from "./dto/video-action.dto";
 import { VideoResponse } from "./interfaces/video-response.interface";
@@ -24,7 +24,6 @@ export class VideoController {
     @Post('play')
     // @UseGuards(CognitoAuthGuard)
     async getVideo(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
-        console.log(`>>>>>>> handleVideoAction: ${JSON.stringify(dto)}`);
         const userId = req.user ? req.user['sub'] : null;
         const name = req.user ? req.user['cognito:username'] : null;
         return this.videosService.handleVideoAction(dto.body, userId, name);
@@ -46,9 +45,7 @@ export class VideoController {
     @Delete(':id')
     @UseGuards(CognitoAuthGuard)
     async deleteVideo(@Param('id') id: string, @Req() req): Promise<any> {
-        console.log(`>>>>> deleteVideo: ${id}`);    
         const userId = req.user ? req.user['sub'] : null;
-        console.log(`>>>>> userId: ${userId}`);
         return this.videosService.deleteVideo(id, userId);
     }
 
@@ -56,5 +53,13 @@ export class VideoController {
     // @UseGuards(CognitoAuthGuard)
     async getVideoMetadata(@Param('id') id: string): Promise<any> {
         return this.videosService.getVideoMetadata(id);
+    }
+
+    @Put(':id')
+    // @UseGuards(CognitoAuthGuard)
+    async updateVideoMetadata(@Param('id') id: string, @Body() videoMetadata: any): Promise<any> {
+        console.log(`>>>>> videoId: ${id}`);
+        console.log(`>>>>> videoMetadata: ${JSON.stringify(videoMetadata)}`);
+        return this.videosService.updateVideoMetadata(id, videoMetadata);
     }
 }

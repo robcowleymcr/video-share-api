@@ -121,7 +121,7 @@ export class VideosService {
         console.log(`getDbItem`, getDbItem);
         if (getDbItem.Item.uploaderId === userId) {
             console.log(`>>>>> you uploaded this video`)
-            
+
             // delete the the thumbnail jpg and the mp4 objects from s3
             const command = new DeleteObjectsCommand({
                 Bucket: this.BUCKET_NAME,
@@ -173,4 +173,52 @@ export class VideosService {
         console.log(result);
         return result;
     }
+
+    async updateVideoMetadata(videoId: string, videoMetadata: any): Promise<any> {
+        // Validate required input
+        if (!videoId || !videoMetadata) {
+            throw new BadRequestException('Missing videoId or metadata');
+        }
+
+        // Define which fields you want to allow updating
+        const updatableFields = ['title', 'videoDescription', 'platform', 'releaseYear'];
+
+        // Build the update expression dynamically
+        let updateExpression = 'SET';
+        const expressionAttributeNames: Record<string, string> = {};
+        const expressionAttributeValues: Record<string, any> = {};
+
+        updatableFields.forEach((field, index) => {
+            if (field in videoMetadata) {
+                const prefix = index === 0 ? ' ' : ', ';
+                updateExpression += `${prefix}#${field} = :${field}`;
+                expressionAttributeNames[`#${field}`] = field;
+                expressionAttributeValues[`:${field}`] = videoMetadata[field];
+            }
+        });
+
+        if (Object.keys(expressionAttributeValues).length === 0) {
+            throw new BadRequestException('No valid fields to update');
+        }
+
+        const params: DynamoDB.DocumentClient.UpdateItemInput = {
+            TableName: 'video_share_videos',
+            Key: { videoId },
+            UpdateExpression: updateExpression,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ReturnValues: 'ALL_NEW',
+        };
+
+        try {
+            const result = await this.dynamoDbClient.update(params).promise();
+            console.log('✅ Video metadata updated:', result.Attributes);
+            return result.Attributes;
+        } catch (err) {
+            console.error('❌ Failed to update video metadata:', err);
+            throw new BadRequestException('Failed to update video metadata');
+        }
+    }
+
+
 }
