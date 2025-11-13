@@ -79,7 +79,7 @@ export class VideosService {
     }
 
     async getRecommendedVideos(): Promise<any> {
-        const scanResult = await this.getAllVideos(null, null);
+        const scanResult = await this.getAllVideos(null, 1);
         const items = scanResult.Items || [];
 
         // Shuffle the items
@@ -91,9 +91,9 @@ export class VideosService {
         return recommendedVideos;
     }
 
-    async getAllVideos(limit: number | null, page: number | null): Promise<DynamoDB.DocumentClient.ScanOutput> {
+    async getAllVideos(limit: number | null, page: number): Promise<DynamoDB.DocumentClient.ScanOutput> {
         console.log(`>>>>>>> limit: ${limit}`);
-        console.log(`>>>>>>> page: ${page}`);
+        console.log(`>>>>>>> pageff: ${page}`);
         const params = {
             TableName: 'video_share_videos'
         }
@@ -105,20 +105,23 @@ export class VideosService {
                 index: index + 1
             }
         });
-        const slicedArray = sortedItems.slice(0, limit || items.length);
+        let slicedArray = sortedItems.slice(0, limit || items.length);
+        let totalPages: number | null = null
+        
+        if (limit) {
+            totalPages = Math.ceil(items.length / limit);
+            const StartIndex = (page - 1) * limit;
+            const EndIndex = StartIndex + limit > items.length ? items.length : StartIndex + limit;
+            slicedArray = sortedItems.slice(StartIndex, EndIndex);
+        }
 
         const object = {
             ...scanResult,
             Count: items.length,
             Items: slicedArray,
             StartIndex: slicedArray[0].index,
-            EndIndex: slicedArray[slicedArray.length - 1].index
-            // Items: items.sort((a: any, b: any) => {
-            //     if (order === 'dsc') {
-            //         return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
-            //     }
-            //     return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
-            // }).slice(0, limit || items.length)
+            EndIndex: slicedArray[slicedArray.length - 1].index,
+            TotalPages: totalPages
         }
         return object;
     }
