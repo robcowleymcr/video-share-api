@@ -11,11 +11,13 @@ export class VideoController {
     @Post()
     @UseGuards(CognitoAuthGuard)
     async uploadVideo(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
+        console.log(`>>>>>>>`)
         const groups = req.user['cognito:groups'] || [];
         if (!groups.includes('admins')) {
             throw new ForbiddenException('Only admins can upload videos');
         }
 
+        
         const userId = req.user ? req.user['sub'] : null;
         const name = req.user ? req.user['cognito:username'] : null;
         return this.videosService.handleVideoAction(dto.body, userId, name);
@@ -31,9 +33,12 @@ export class VideoController {
 
     @Get()
     // @UseGuards(CognitoAuthGuard)
-    async getAllVideos(@Query('order') order: string = 'dsc', @Query('limit') limit: string = '9'): Promise<any> {
-        const limitInt = parseInt(limit);
-        return this.videosService.getAllVideos(order, limitInt);
+    async getAllVideos(@Query('order') order: string = 'dsc', @Query('limit') limit: string, @Query('page') page: string): Promise<any> {
+        // const limitInt = parseInt(limit);
+        const limitInt = limit ? parseInt(limit) : null;
+        const pageInt = page ? parseInt(page) : 1;
+        console.log(`>>>>>>> limit 1: ${limitInt} ${typeof limitInt}`);
+        return this.videosService.getAllVideos(limitInt, pageInt);
     }
 
     @Get('recommended')
@@ -58,8 +63,8 @@ export class VideoController {
     @Put(':id')
     // @UseGuards(CognitoAuthGuard)
     async updateVideoMetadata(@Param('id') id: string, @Body() videoMetadata: any): Promise<any> {
-        console.log(`>>>>> videoId: ${id}`);
-        console.log(`>>>>> videoMetadata: ${JSON.stringify(videoMetadata)}`);
+        // console.log(`>>>>> videoId: ${id}`);
+        // console.log(`>>>>> videoMetadata: ${JSON.stringify(videoMetadata)}`);
         return this.videosService.updateVideoMetadata(id, videoMetadata);
     }
 }

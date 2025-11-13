@@ -79,7 +79,7 @@ export class VideosService {
     }
 
     async getRecommendedVideos(): Promise<any> {
-        const scanResult = await this.getAllVideos();
+        const scanResult = await this.getAllVideos(null, null);
         const items = scanResult.Items || [];
 
         // Shuffle the items
@@ -91,22 +91,36 @@ export class VideosService {
         return recommendedVideos;
     }
 
-    async getAllVideos(order: string = 'dsc', limit: number | null = null): Promise<DynamoDB.DocumentClient.ScanOutput> {
+    async getAllVideos(limit: number | null, page: number | null): Promise<DynamoDB.DocumentClient.ScanOutput> {
+        console.log(`>>>>>>> limit: ${limit}`);
+        console.log(`>>>>>>> page: ${page}`);
         const params = {
             TableName: 'video_share_videos'
         }
         const scanResult = await this.dynamoDbClient.scan(params).promise();
         const items = scanResult.Items?.filter((item: any) => item.status === VideoStatus.UPLOADED) || [];
-        const dateDescending = {
+        const sortedItems = items.sort((a, b) => a.title.localeCompare(b.title)).map((item: any, index: number) => {
+            return {
+                ...item,
+                index: index + 1
+            }
+        });
+        const slicedArray = sortedItems.slice(0, limit || items.length);
+
+        const object = {
             ...scanResult,
-            Items: items.sort((a: any, b: any) => {
-                if (order === 'dsc') {
-                    return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
-                }
-                return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
-            }).slice(0, limit || items.length)
+            Count: items.length,
+            Items: slicedArray,
+            StartIndex: slicedArray[0].index,
+            EndIndex: slicedArray[slicedArray.length - 1].index
+            // Items: items.sort((a: any, b: any) => {
+            //     if (order === 'dsc') {
+            //         return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
+            //     }
+            //     return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
+            // }).slice(0, limit || items.length)
         }
-        return dateDescending
+        return object;
     }
 
     async deleteVideo(videoId: string, userId: string): Promise<any> {
@@ -210,15 +224,32 @@ export class VideosService {
             ReturnValues: 'ALL_NEW',
         };
 
+        let signedUrl: string | null = null;
+
+        if(videoMetadata.fileName) {
+            const s3FilePath = `thumbnails/${videoId}.jpg`;
+            console.log(`>>>>> file upload required: ${s3FilePath}`);
+
+
+            const command = new PutObjectCommand({
+                Bucket: this.BUCKET_NAME,
+                Key: s3FilePath,
+                ContentType: 'jpg',
+            });
+
+            signedUrl = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
+        }
         try {
             const result = await this.dynamoDbClient.update(params).promise();
-            console.log('✅ Video metadata updated:', result.Attributes);
-            return result.Attributes;
+            // console.log('✅ Video metadata updated:', result.Attributes);
+            return {
+                attributes: result.Attributes,
+                signedUrl: signedUrl || undefined
+            };
         } catch (err) {
             console.error('❌ Failed to update video metadata:', err);
             throw new BadRequestException('Failed to update video metadata');
         }
+
     }
-
-
 }
