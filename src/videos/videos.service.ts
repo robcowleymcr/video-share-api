@@ -92,8 +92,6 @@ export class VideosService {
     }
 
     async getAllVideos(limit: number | null, page: number): Promise<DynamoDB.DocumentClient.ScanOutput> {
-        console.log(`>>>>>>> limit: ${limit}`);
-        console.log(`>>>>>>> pageff: ${page}`);
         const params = {
             TableName: 'video_share_videos'
         }
