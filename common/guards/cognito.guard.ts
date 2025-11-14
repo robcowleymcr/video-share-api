@@ -18,11 +18,10 @@ export class CognitoAuthGuard implements CanActivate {
 
     try {
       const payload = await this.verifier.verify(token);
-      console.log('JWT payload:', payload);
-      request.user = payload; // attach claims to request
+      // console.log('JWT payload:', payload);
+      request.user = payload;
       return true;
     } catch (err) {
-      console.error('JWT verification failed:', err);
       return false;
     }
   }

@@ -40,8 +40,6 @@ export class VideosService {
                 ContentType: contentType
             })
 
-            console.log(`command`, command);
-
             // Create new VideoMetadata entity
             const metadataObject = new VideoMetadata(
                 videoId,
@@ -56,11 +54,7 @@ export class VideosService {
                 platform
             );
 
-            console.log(`metadataObject`, metadataObject);
-
             await this.saveVideoMetadata(metadataObject);
-
-
         } else if (action === 'download') {
             command = new GetObjectCommand({
                 Bucket: this.BUCKET_NAME,
