@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get,
 import { VideosService } from "./videos.service";
 import { VideoActionDto } from "./dto/video-action.dto";
 import { VideoResponse } from "./interfaces/video-response.interface";
-import { CognitoAuthGuard } from "common/guards/cognito.guard";
+import { CognitoAuthGuard } from "../common/guards/cognito.guard";
 
 @Controller('videos')
 export class VideoController {
@@ -11,21 +11,33 @@ export class VideoController {
     @Post()
     @UseGuards(CognitoAuthGuard)
     async uploadVideo(@Body() dto: { body: VideoActionDto }, @Req() req): Promise<VideoResponse> {
-        const groups = req.user['cognito:groups'] || [];
-        const body = dto.body;
-        
-        if (!groups.includes('admins')) {
-            throw new ForbiddenException('Only admins can upload videos');
+        try {
+            console.log(`>>> 2`)
+            const groups = req.user['cognito:groups'] || [];
+            console.log(`>>> 3`)
+            const body = dto.body;
+            console.log(`>>> 4`)
+
+            if (!groups.includes('admin')) {
+                throw new ForbiddenException('Only admins can upload videos');  
+            }
+
+            if (!body.action || !body.platform || !body.videoDescription || !body.videoTitle || !body.releaseYear) {
+                console.log(`>>> 1`)
+                throw new BadRequestException("Please ensure all fields have been provided.");
+            }
+
+
+            const userId = req.user ? req.user.sub : null;
+            const name = req.user ? req.user.username : null;
+
+            console.log(`>>>> user sub: ${JSON.stringify(req.user)}`)
+            // console.log(`>>>> user name: ${JSON.stringify(req.user)}`)
+
+            return this.videosService.handleVideoAction(dto.body, userId, name);
+        } catch (e) {
+            throw new BadRequestException(e)
         }
-
-        if(!body.action || !body.platform || !body.videoDescription || !body.videoTitle || !body.releaseYear) {
-            throw new BadRequestException("Please ensure all fields have been provided.");
-        }
-
-        const userId = req.user ? req.user['sub'] : null;
-        const name = req.user ? req.user['cognito:username'] : null;
-
-        return this.videosService.handleVideoAction(dto.body, userId, name);
     }
 
     @Post('play')

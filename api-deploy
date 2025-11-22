@@ -1,0 +1,8 @@
+rm -r ./dist
+rm -r ./lambda-dist
+npm run build
+cp ./dist/src ./lambda-dist
+cd ./lambda-dist
+npm i --production
+cd ../infra
+aws cdk deploy

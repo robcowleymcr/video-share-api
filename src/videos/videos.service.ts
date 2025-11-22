@@ -7,6 +7,7 @@ import { VideoMetadata } from "./entities/videoMetadata.entity";
 import { uuid } from "uuidv4";
 import { VideoStatus } from "./enum/videoStatus.enum";
 import { DynamoDB } from "aws-sdk";
+import { AnyARecord } from "dns";
 
 @Injectable()
 export class VideosService {
@@ -14,7 +15,7 @@ export class VideosService {
     private readonly BUCKET_NAME = 'video-share-uploads';
     private readonly dynamoDbClient = new DynamoDB.DocumentClient({ region: 'eu-west-2' });
 
-    async saveVideoMetadata(videoMetadata: VideoMetadata) {
+    async saveVideoMetadata(videoMetadata: VideoMetadata): Promise<any> {
         const params = {
             TableName: 'video_share_videos',
             Item: videoMetadata

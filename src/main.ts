@@ -10,7 +10,26 @@ let cachedServer: Handler;
 async function bootstrapServer(): Promise<Handler> {
   if (!cachedServer) {
     const expressApp = express();
+
+    expressApp.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', 'https://amplify.d1hf606h22june.amplifyapp.com,http://localhost:3000');
+      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+      res.header('Access-Control-Allow-Credentials', 'true');
+
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+      }
+      next();
+    });
+
     const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
+    app.enableCors({
+      origin: ['https://amplify.d1hf606h22june.amplifyapp.com', 'http://localhost:3001'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true,
+    });
     await app.init();
     cachedServer = serverlessExpress({ app: expressApp });
   }
@@ -32,12 +51,14 @@ export const handler: Handler = async (event: any, context: Context, callback: C
 async function bootstrapLocal() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
-    origin: 'http://localhost:3001', // ✅ your React dev server
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true, // optional, only if you use cookies or auth headers
-  });
+  // app.enableCors({
+  //   origin: ['http://localhost:3001', 'https://amplify.d1hf606h22june.amplifyapp.com'],
+  //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  //   allowedHeaders: ['Content-Type', 'Authorization'],
+  //   credentials: true,
+  // });
+
+  app.enableCors();
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

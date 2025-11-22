@@ -56,3 +56,7 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /.aws-sam
+
+/infra/cdk.out
+
+/lambda-dist
