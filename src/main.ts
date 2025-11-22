@@ -12,7 +12,7 @@ async function bootstrapServer(): Promise<Handler> {
     const expressApp = express();
 
     expressApp.use((req, res, next) => {
-      res.header('Access-Control-Allow-Origin', 'https://amplify.d1hf606h22june.amplifyapp.com,http://localhost:3000');
+      res.header('Access-Control-Allow-Origin', 'https://amplify.d2ezp8u60tglid.amplifyapp.com,http://localhost:3001');
       res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
       res.header('Access-Control-Allow-Credentials', 'true');
@@ -25,7 +25,7 @@ async function bootstrapServer(): Promise<Handler> {
 
     const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
     app.enableCors({
-      origin: ['https://amplify.d1hf606h22june.amplifyapp.com', 'http://localhost:3001'],
+      origin: ['https://amplify.d2ezp8u60tglid.amplifyapp.com', 'http://localhost:3001'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       credentials: true,
