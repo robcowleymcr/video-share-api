@@ -7,17 +7,29 @@ import { VideoMetadata } from "./entities/videoMetadata.entity";
 import { uuid } from "uuidv4";
 import { VideoStatus } from "./enum/videoStatus.enum";
 import { DynamoDB } from "aws-sdk";
-import { AnyARecord } from "dns";
+import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from "@nestjs/typeorm";
+import { Video } from "./entities/video.entity";
+import { Repository } from "typeorm";
 
 @Injectable()
 export class VideosService {
     private s3 = new S3Client({ region: 'eu-west-2' });
     private readonly BUCKET_NAME = 'video-share-uploads';
     private readonly dynamoDbClient = new DynamoDB.DocumentClient({ region: 'eu-west-2' });
+    private TableName;
+
+    constructor(
+        private readonly config: ConfigService,
+        @InjectRepository(Video)
+        private readonly videoRepo: Repository<Video>
+    ) {
+        this.TableName = this.config.get<string>('TABLE_NAME');
+    }
 
     async saveVideoMetadata(videoMetadata: VideoMetadata): Promise<any> {
         const params = {
-            TableName: 'video_share_videos',
+            TableName: this.TableName,
             Item: videoMetadata
         }
         return this.dynamoDbClient.put(params).promise();
@@ -87,29 +99,34 @@ export class VideosService {
     }
 
     async getAllVideos(limit: number | null, page: number): Promise<DynamoDB.DocumentClient.ScanOutput> {
-        const params = {
-            TableName: 'video_share_videos'
-        }
-        const scanResult = await this.dynamoDbClient.scan(params).promise();
-        const items = scanResult.Items?.filter((item: any) => item.status === VideoStatus.UPLOADED) || [];
-        const sortedItems = items.sort((a, b) => a.title.localeCompare(b.title)).map((item: any, index: number) => {
+        const videosData = await this.videoRepo.find({
+            where: {
+                status: VideoStatus.UPLOADED,
+            },
+            order: {
+                title: 'ASC'
+            }
+        });
+
+        const items = videosData.map((item: any, index: number) => {
             return {
                 ...item,
                 index: index + 1
             }
         });
-        let slicedArray = sortedItems.slice(0, limit || items.length);
+
+        let slicedArray = items.slice(0, limit || items.length);
         let totalPages: number | null = null
         
         if (limit) {
             totalPages = Math.ceil(items.length / limit);
             const StartIndex = (page - 1) * limit;
             const EndIndex = StartIndex + limit > items.length ? items.length : StartIndex + limit;
-            slicedArray = sortedItems.slice(StartIndex, EndIndex);
+            slicedArray = items.slice(StartIndex, EndIndex);
         }
 
         const object = {
-            ...scanResult,
+            ...videosData,
             Count: items.length,
             Items: slicedArray,
             StartIndex: slicedArray[0].index,
