@@ -1,5 +1,5 @@
 import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, S3Client, DeleteObjectsCommand } from "@aws-sdk/client-s3";
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { VideoActionDto } from "./dto/video-action.dto";
 import { VideoResponse } from "./interfaces/video-response.interface";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -46,14 +46,12 @@ export class VideosService {
             const fileName = `${videoId}.mp4`;
             let s3Key = `${uploaderId}/${videoId}`;
 
-            // Create new S3 object
             command = new PutObjectCommand({
                 Bucket: this.BUCKET_NAME,
                 Key: fileName,
                 ContentType: contentType
             })
 
-            // Create new VideoMetadata entity
             const metadataObject = new VideoMetadata(
                 videoId,
                 uploaderId,
@@ -88,11 +86,7 @@ export class VideosService {
     async getRecommendedVideos(): Promise<any> {
         const scanResult = await this.getAllVideos(null, 1);
         const items = scanResult.Items || [];
-
-        // Shuffle the items
         const shuffledItems = items.sort(() => Math.random() - 0.5);
-
-        // Select the first 5 items
         const recommendedVideos = shuffledItems.slice(0, 5);
 
         return recommendedVideos;
@@ -117,7 +111,7 @@ export class VideosService {
 
         let slicedArray = items.slice(0, limit || items.length);
         let totalPages: number | null = null
-        
+
         if (limit) {
             totalPages = Math.ceil(items.length / limit);
             const StartIndex = (page - 1) * limit;
@@ -137,109 +131,92 @@ export class VideosService {
     }
 
     async deleteVideo(videoId: string, userId: string): Promise<any> {
-        const params = {
-            TableName: 'video_share_videos',
-            Key: {
-                videoId
-            }
+        const video = await this.videoRepo.findOne({ where: { videoId } });
+
+        if (!video) {
+            throw new NotFoundException(`Video with id ${videoId} not found`);
         }
 
-        const getDbItem: any = await this.dynamoDbClient.get(params).promise();
-        console.log(`getDbItem`, getDbItem);
-        if (getDbItem.Item.uploaderId === userId) {
-            console.log(`>>>>> you uploaded this video`)
-
-            // delete the the thumbnail jpg and the mp4 objects from s3
-            const command = new DeleteObjectsCommand({
-                Bucket: this.BUCKET_NAME,
-                Delete: {
-                    Objects: [
-                        {
-                            Key: `${videoId}.mp4`,
-                        },
-                        {
-                            Key: `thumbnails/${videoId}.jpg`,
-                        }
-                    ],
-                }
-            })
-
-            const s3DeleteResponse = await this.s3.send(command);
-
-            console.log("✅ S3 delete success:", s3DeleteResponse);
-
-            // update the item status in dynamodb
-            const params = {
-                TableName: 'video_share_videos',
-                Key: {
-                    videoId: videoId,
-                },
-                UpdateExpression: 'SET #status = :status',
-                ExpressionAttributeNames: {
-                    '#status': 'status',
-                },
-                ExpressionAttributeValues: {
-                    ':status': VideoStatus.DELETED,
-                },
-                ReturnValues: 'ALL_NEW',
-            };
-            return await this.dynamoDbClient.update(params).promise();
-        }
-        else {
+        if (video.uploaderId !== userId) {
             throw new BadRequestException('You can only delete your own videos');
         }
-    }
-    async getVideoMetadata(videoId: string): Promise<DynamoDB.DocumentClient.GetItemOutput> {
-        const params = {
-            TableName: 'video_share_videos',
-            Key: {
-                videoId: videoId
-            }
+
+        const command = new DeleteObjectsCommand({
+            Bucket: this.BUCKET_NAME,
+            Delete: {
+                Objects: [
+                    { Key: `${videoId}.mp4` },
+                    { Key: `thumbnails/${videoId}.jpg` },
+                ],
+            },
+        });
+
+        const s3DeleteResponse = await this.s3.send(command);
+        console.log('S3 delete response:', s3DeleteResponse);
+
+        await this.videoRepo.update(
+            { videoId },
+            { status: VideoStatus.DELETED },
+        );
+
+        const updatedVideo = await this.videoRepo.findOne({ where: { videoId } });
+        if (!updatedVideo) {
+            throw new NotFoundException(
+                `Video with id ${videoId} not found after update`,
+            );
         }
-        const result = await this.dynamoDbClient.get(params).promise();
+
+        return { video: updatedVideo };
+    }
+
+    async getVideoMetadata(videoId: string): Promise<Video | null> {
+        const result = await this.videoRepo.findOne({
+            where: { videoId }
+        })
         console.log(result);
         return result;
     }
 
     async updateVideoMetadata(videoId: string, videoMetadata: any): Promise<any> {
-        // Validate required input
         if (!videoId || !videoMetadata) {
             throw new BadRequestException('Missing videoId or metadata');
         }
 
-        // Define which fields you want to allow updating
         const updatableFields = ['title', 'videoDescription', 'platform', 'releaseYear'];
 
-        // Build the update expression dynamically
-        let updateExpression = 'SET';
-        const expressionAttributeNames: Record<string, string> = {};
-        const expressionAttributeValues: Record<string, any> = {};
+        const updatePayload: Partial<Video> = {};
 
-        updatableFields.forEach((field, index) => {
+        for (const field of updatableFields) {
             if (field in videoMetadata) {
-                const prefix = index === 0 ? ' ' : ', ';
-                updateExpression += `${prefix}#${field} = :${field}`;
-                expressionAttributeNames[`#${field}`] = field;
-                expressionAttributeValues[`:${field}`] = videoMetadata[field];
+                if (field === 'releaseYear' && videoMetadata[field] != null) {
+                    updatePayload[field] = Number(videoMetadata[field]) as any;
+                } else {
+                    updatePayload[field] = videoMetadata[field];
+                }
             }
-        });
+        }
 
-        if (Object.keys(expressionAttributeValues).length === 0) {
+        if (Object.keys(updatePayload).length === 0) {
             throw new BadRequestException('No valid fields to update');
         }
 
-        const params: DynamoDB.DocumentClient.UpdateItemInput = {
-            TableName: 'video_share_videos',
-            Key: { videoId },
-            UpdateExpression: updateExpression,
-            ExpressionAttributeNames: expressionAttributeNames,
-            ExpressionAttributeValues: expressionAttributeValues,
-            ReturnValues: 'ALL_NEW',
-        };
+        const updateResult = await this.videoRepo.update(
+            { videoId },
+            updatePayload
+        );
+
+        if (updateResult.affected === 0) {
+            throw new NotFoundException(`Video with id ${videoId} not found`);
+        }
+
+        const updatedVideo = await this.videoRepo.findOne({ where: { videoId } });
+        if (!updatedVideo) {
+            throw new NotFoundException(`Video with id ${videoId} not found after update`);
+        }
 
         let signedUrl: string | null = null;
 
-        if(videoMetadata.fileName) {
+        if (videoMetadata.fileName) {
             const s3FilePath = `thumbnails/${videoId}.jpg`;
             console.log(`>>>>> file upload required: ${s3FilePath}`);
 
@@ -253,11 +230,10 @@ export class VideosService {
             signedUrl = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
         }
         try {
-            const result = await this.dynamoDbClient.update(params).promise();
-            // console.log('✅ Video metadata updated:', result.Attributes);
+            // const result = await this.dynamoDbClient.update(params).promise();
             return {
-                attributes: result.Attributes,
-                signedUrl: signedUrl || undefined
+                video: updatedVideo,
+                ...(signedUrl ? { signedUrl } : {}),
             };
         } catch (err) {
             console.error('❌ Failed to update video metadata:', err);
