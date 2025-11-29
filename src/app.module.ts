@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Video } from './videos/entities/video.entity';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { Video } from './videos/entities/video.entity';
         ssl: { rejectUnauthorized: false },
       }),
     }),
-    VideosModule
+    VideosModule,
+    CommentsModule
   ],
   controllers: [AppController],
   providers: [AppService],

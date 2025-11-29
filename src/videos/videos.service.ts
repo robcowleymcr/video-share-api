@@ -7,7 +7,6 @@ import { VideoMetadata } from "./entities/videoMetadata.entity";
 import { uuid } from "uuidv4";
 import { VideoStatus } from "./enum/videoStatus.enum";
 import { DynamoDB } from "aws-sdk";
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Video } from "./entities/video.entity";
 import { Repository } from "typeorm";
