@@ -16,23 +16,70 @@ import { Repository } from "typeorm";
 export class VideosService {
     private s3 = new S3Client({ region: 'eu-west-2' });
     private readonly BUCKET_NAME = 'video-share-uploads';
-    private readonly dynamoDbClient = new DynamoDB.DocumentClient({ region: 'eu-west-2' });
-    private TableName;
 
     constructor(
-        private readonly config: ConfigService,
+        // private readonly config: ConfigService,
         @InjectRepository(Video)
         private readonly videoRepo: Repository<Video>
     ) {
-        this.TableName = this.config.get<string>('TABLE_NAME');
+        // this.TableName = this.config.get<string>('TABLE_NAME');`    `
     }
 
     async saveVideoMetadata(videoMetadata: VideoMetadata): Promise<any> {
-        const params = {
-            TableName: this.TableName,
-            Item: videoMetadata
+        console.log(`>>>> 1`)
+        // const videoEntity = {
+        //     ...videoMetadata
+        // }
+        const response = await this.videoRepo.save(videoMetadata);
+        // console.log(`>>>> 2:`, videoEntity)
+        console.log(response)
+        return response;
+    }
+
+    async requestSignedUrl(dto: VideoActionDto, uploaderId: string, uploaderName: string): Promise<any> {
+        const { contentType, videoTitle, videoDescription, releaseYear, platform } = dto;
+        const videoId = uuid();
+        const fileName = `${videoId}.mp4`;
+        const expiresIn = 3600;
+        let s3Key = `${uploaderId}/${videoId}`;
+
+        const command = new PutObjectCommand({
+            Bucket: this.BUCKET_NAME,
+            Key: fileName,
+            ContentType: contentType
+        })
+
+        const metadataObject = new VideoMetadata(
+            videoId,
+            uploaderId,
+            uploaderName,
+            s3Key,
+            videoTitle,
+            dto.contentType,
+            VideoStatus.PENDING,
+            videoDescription,
+            parseInt(releaseYear),
+            platform
+        );
+
+        const findOne = await this.videoRepo.findOne({
+            where: {
+                title: metadataObject.title
+            }
+        })
+
+        if(findOne) {
+            throw new BadRequestException(`${metadataObject.title} already exists, please choose a different title.`)
         }
-        return this.dynamoDbClient.put(params).promise();
+
+        await this.saveVideoMetadata(metadataObject);
+
+        const url = await getSignedUrl(this.s3, command, { expiresIn });
+
+        return {
+            url,
+            expiresIn
+        }
     }
 
     async handleVideoAction(dto: VideoActionDto, uploaderId: string, uploaderName: string): Promise<VideoResponse> {
@@ -230,7 +277,6 @@ export class VideosService {
             signedUrl = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
         }
         try {
-            // const result = await this.dynamoDbClient.update(params).promise();
             return {
                 video: updatedVideo,
                 ...(signedUrl ? { signedUrl } : {}),
