@@ -18,21 +18,14 @@ export class VideosService {
     private readonly BUCKET_NAME = 'video-share-uploads';
 
     constructor(
-        // private readonly config: ConfigService,
         @InjectRepository(Video)
         private readonly videoRepo: Repository<Video>
-    ) {
-        // this.TableName = this.config.get<string>('TABLE_NAME');`    `
-    }
+    ) {}
 
     async saveVideoMetadata(videoMetadata: VideoMetadata): Promise<any> {
-        console.log(`>>>> 1`)
-        // const videoEntity = {
-        //     ...videoMetadata
-        // }
         const response = await this.videoRepo.save(videoMetadata);
-        // console.log(`>>>> 2:`, videoEntity)
-        console.log(response)
+
+
         return response;
     }
 
